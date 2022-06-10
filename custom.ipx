@@ -1,0 +1,78 @@
+#!ipxe
+###
+### iPXE Menu
+###
+
+# I wish I could dress up my menu, but Netboot.xyz doesn't compile in the console command :'(
+# console --x 1280 --y 800
+# console --picture http://boot.ipxe.org/texture.png --left 240 --right 240 --top 80 --bottom 120 --depth 24
+
+:start
+echo Greetings, wayfaring stranger.
+:custom
+clear custom_choice
+menu Select the desired boot environment
+item --gap Parted Magic (v2021_11_17)
+item pmagic    ${space} amd64 classic+cgz
+item pmagicnet ${space} amd64 netsrc+squashfs
+item --gap Grml (v2018.12)
+item grmliso ${space} Grml amd64 Full ISO
+item grmlram ${space} Grml amd64 Full ramdisk
+item --gap Clonezilla (v20191009)
+item czillaiso ${space} Clonezilla Live amd64 Ubuntu Eoan ISO
+item czillaram ${space} Clonezilla Live amd64 Ubuntu Eoan ramdisk
+choose custom_choice || goto custom_exit
+echo ${cls}
+goto ${custom_choice}
+goto custom_exit
+
+:pmagic
+set pmagic-path https://rscholar.keybase.pub/ipxe/pmagic
+imgfetch --name bzImage ${pmagic-path}/bzImage?dl=1
+imgfetch --name initrd.img ${pmagic-path}/initrd.img?dl=1
+imgfetch --name fu.img ${pmagic-path}/fu.img?dl=1
+imgfetch --name m.img ${pmagic-path}/m.img?dl=1
+imgfetch --name files.cgz ${pmagic-path}/files.cgz?dl=1
+chain bzImage initrd=initrd.img initrd=fu.img initrd=m.img initrd=files.cgz boot=live ip=dhcp edd=on load_ramdisk=1 prompt_ramdisk=0 rw vga=normal sleep=0 loglevel=0 keymap=us || goto custom_exit
+
+:pmagicnet
+set pmagic-path https://rscholar.keybase.pub/ipxe/pmagic
+imgfetch --name bzImage ${pmagic-path}/bzImage?dl=1
+imgfetch --name initrd.img ${pmagic-path}/initrd.img?dl=1
+imgfetch --name fu.img ${pmagic-path}/fu.img?dl=1
+imgfetch --name m.img ${pmagic-path}/m.img?dl=1
+chain bzImage initrd=initrd.img initrd=fu.img initrd=m.img edd=on vga=normal netsrc=wget neturl="https://keybase.pub/rscholar/ipxe/pmagic/pmodules/" boot=live ip=dhcp load_ramdisk=1 prompt_ramdisk=0 rw sleep=0 loglevel=0 keymap=us || goto custom_exit
+
+:grmliso
+set grml-path https://rscholar.keybase.pub/ipxe/grml
+imgfetch --name memdisk ${grml-path}/memdisk?dl=1
+imgfetch --name grml64-full_2018.12.iso ${grml-path}/grml64-full_2018.12.iso?dl=1
+chain memdisk initrd=grml64-full_2018.12.iso raw iso nox2apic vmalloc=256M || goto custom_exit
+
+:grmlram
+set grml-path https://rscholar.keybase.pub/ipxe/grml
+imgfetch --name vmlinuz ${grml-path}/vmlinuz?dl=1
+imgfetch --name initrd.img ${grml-path}/initrd.img?dl=1
+imgfetch --name grml64-full.squashfs ${grml-path}/grml64-full.squashfs
+chain vmlinuz initrd=initrd.img initrd=grml64-full.squashfs boot=live apm=power-off vga=791 nomce noeject noprompt noblank keyboard=us xkeyboard=us tz=America/Los_Angeles hostname ssh=password nox2apic || goto custom_exit
+
+:czillaiso
+set czilla-path https://rscholar.keybase.pub/ipxe/czilla
+imgfetch --name memdisk ${czilla-path}/memdisk?dl=1
+imgfetch --name clonezilla-live-20191009-eoan-amd64.iso ${czilla-path}/clonezilla-live-20191009-eoan-amd64.iso?dl=1
+chain memdisk initrd=clonezilla-live-20191009-eoan-amd64.iso raw iso nox2apic vmalloc=256M || goto custom_exit
+
+:czillaram
+set czilla-path https://rscholar.keybase.pub/ipxe/czilla
+imgfetch --name vmlinuz ${czilla-path}/vmlinuz?dl=1
+imgfetch --name initrd.img ${czilla-path}/initrd.img?dl=1
+imgfetch --name filesystem.squashfs ${czilla-path}/filesystem.squashfs
+chain vmlinuz initrd=initrd.img initrd=filesystem.squashfs boot=live username=user union=overlay config components quiet noswap edd=on nodmraid locales=en_US.UTF-8 ocs_live_run="ocs-live-general" ocs_live_batch=no net.ifnames=0 nosplash noprompt nox2apic || goto custom_exit
+
+sleep 300
+goto custom_exit
+
+:custom_exit
+exit 0
+
+#chain https://raw.githubusercontent.com/${github_user}/netboot.xyz-custom/master/custom1.ipxe || goto custom
